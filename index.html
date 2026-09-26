@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Yomogi&display=swap" rel="stylesheet">
+
+  <!-- ↓見た目なので，CSSで書いている -->
 <style>
   :root{
     --bg:#3B4A36; --paper:#FBF7EE; --ink-ui:#F3F1E8; --ink-pen:#232323;
@@ -55,17 +57,11 @@
     box-shadow:0 0 0 1px var(--border) inset;
   }
   .swatch.sel{border-color:var(--ink-ui);}
-  input[type=range]{width:90px; accent-color:var(--accent);}
-  .stage{position:relative; width:min(90vw, 520px); aspect-ratio:91/55; margin:6px 0;}
-  .stage::before, .stage::after{
-    content:''; position:absolute; inset:0; background:var(--paper);
-    border-radius:14px; box-shadow:var(--shadow); z-index:0;
-  }
-  .stage::before{ transform:rotate(-3deg) translateY(2px); }
-  .stage::after{ transform:rotate(2.4deg) translateY(4px); }
+  /* 描画領域のオプション */
+  .stage{width:min(90vw, 520px); aspect-ratio:91/55; margin:6px 0;}
   canvas{
-    position:relative; z-index:1; width:100%; height:100%; display:block;
-    background:var(--paper); border-radius:14px; box-shadow:var(--shadow);
+    width:100%; height:100%; display:block;
+    background:var(--paper); border:1px solid var(--border);
     touch-action:none;
   }
   .pagebar{display:flex; align-items:center; gap:10px;}
@@ -83,17 +79,17 @@
 </style>
 </head>
 <body>
-  <h1>✏️ 手書きメモ帳</h1>
+  <h1>MeMoMa</h1>
 
-  <div class="row">
+  <!-- ペンのオプション -->
+  <div class="row"> 
     <span class="swatch sel" data-color="#232323" style="background:#232323"></span>
     <span class="swatch" data-color="#3A5BA0" style="background:#3A5BA0"></span>
-    <span class="swatch" data-color="#B5473A" style="background:#B5473A"></span>
-    <span class="swatch" data-color="#3F7A4E" style="background:#3F7A4E"></span>
+    <span class="swatch" data-color="rgba(255,45,140,0.3)" data-highlight="1" style="background:#FF8FC7"></span>
     <input type="range" id="widthRange" min="1" max="10" value="3" title="太さ">
-    <button id="eraserBtn">🩹 消しゴム</button>
-    <button id="undoBtn">↩️ 戻す</button>
-    <button id="clearBtn">🧹 全消去</button>
+    <button id="eraserBtn">🩹 けしごむ</button>
+    <button id="undoBtn">↩️ UNDO</button>
+    <button id="clearBtn">🧹 全消し</button>
   </div>
 
   <div class="stage"><canvas id="canvas"></canvas></div>
@@ -115,19 +111,22 @@
 
   <div class="toast" id="toast"></div>
 
-<script>
+<script> \\動的なので，JavaScriptで書いている
 (function(){
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   const W = 728, H = 440; // 名刺比率 91:55
   canvas.width = W; canvas.height = H;
   const PAPER = '#FBF7EE';
+  const PEN_WIDTH = 2;
+  const HILITE_WIDTH = 20;
+  const ERASER_WIDTH = 25;
   const STORAGE_KEY = 'handwritten_memo_pad_v1';
 
   let pages = [{strokes:[]}];
   let current = 0;
   let color = '#232323';
-  let lineWidth = 3;
+  let isHighlight = false;
   let erasing = false;
   let drawing = false;
   let stroke = null;
@@ -179,9 +178,11 @@
   canvas.addEventListener('pointerdown', e=>{
     canvas.setPointerCapture(e.pointerId);
     drawing = true;
-    stroke = { color: erasing?PAPER:color, width: erasing?Math.max(lineWidth*4,14):lineWidth, erase:erasing, points:[getPos(e)] };
+    const w = erasing ? ERASER_WIDTH : (isHighlight ? HILITE_WIDTH : PEN_WIDTH);
+    stroke = { color: erasing?PAPER:color, width: w, erase:erasing, points:[getPos(e)] };
     pages[current].strokes.push(stroke);
   });
+  
   canvas.addEventListener('pointermove', e=>{
     if(!drawing) return;
     stroke.points.push(getPos(e));
@@ -194,14 +195,13 @@
 
   document.querySelectorAll('.swatch').forEach(sw=>{
     sw.addEventListener('click', ()=>{
-      color = sw.dataset.color; erasing = false;
+      color = sw.dataset.color; isHighlight = !!sw.dataset.highlight; erasing = false;
       document.getElementById('eraserBtn').classList.remove('active');
       document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
       sw.classList.add('sel');
     });
   });
-  document.getElementById('widthRange').addEventListener('input', e=>{ lineWidth = +e.target.value; });
-  document.getElementById('eraserBtn').addEventListener('click', function(){
+   document.getElementById('eraserBtn').addEventListener('click', function(){
     erasing = !erasing;
     this.classList.toggle('active', erasing);
   });
