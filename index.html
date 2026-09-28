@@ -33,6 +33,7 @@
     margin:0; background:var(--bg); color:var(--ink-ui);
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
     display:flex; flex-direction:column; align-items:center; gap:16px;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
     padding: calc(22px + env(safe-area-inset-top,0px)) 18px calc(22px + env(safe-area-inset-bottom,0px));
     min-height:100%;
   }
@@ -183,6 +184,7 @@
   }
 
   canvas.addEventListener('pointerdown', e=>{
+    e.preventDefault();
     canvas.setPointerCapture(e.pointerId);
     drawing = true;
     const w = erasing ? ERASER_WIDTH : (isHighlight ? HILITE_WIDTH : PEN_WIDTH);
@@ -199,6 +201,8 @@
   canvas.addEventListener('pointerup', endStroke);
   canvas.addEventListener('pointercancel', endStroke);
   canvas.addEventListener('pointerleave', endStroke);
+  canvas.addEventListener('selectstart', e=>e.preventDefault());
+  canvas.addEventListener('contextmenu', e=>e.preventDefault());
 
   document.querySelectorAll('.swatch').forEach(sw=>{
     sw.addEventListener('click', ()=>{
