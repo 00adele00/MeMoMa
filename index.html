@@ -137,6 +137,8 @@
   let isHighlight = false;
   let erasing = false;
   let drawing = false;
+  let activeId = null;   // いま描いているペン/指のID
+  let raf = 0;           // 描画の間引き用
   let stroke = null;
 
   function load(){
@@ -185,6 +187,8 @@
 
   canvas.addEventListener('pointerdown', e=>{
     e.preventDefault();
+    if(drawing && activeId!==null && canvas.hasPointerCapture(activeId)) return;
+    activeId = e.pointerId;
     canvas.setPointerCapture(e.pointerId);
     drawing = true;
     const w = erasing ? ERASER_WIDTH : (isHighlight ? HILITE_WIDTH : PEN_WIDTH);
@@ -193,14 +197,17 @@
   });
   
   canvas.addEventListener('pointermove', e=>{
-    if(!drawing) return;
+    if(!drawing || e.pointerId!==activeId) return;
     stroke.points.push(getPos(e));
-    redraw();
+    if(!raf) raf = requestAnimationFrame(()=>{ raf=0; redraw(); });
   });
-  function endStroke(){ if(!drawing) return; drawing=false; stroke=null; save(); }
-  canvas.addEventListener('pointerup', endStroke);
-  canvas.addEventListener('pointercancel', endStroke);
-  canvas.addEventListener('pointerleave', endStroke);
+  function endStroke(e){
+    if(!drawing || (e && e.pointerId!==activeId)) return;
+    drawing=false; stroke=null; activeId=null; redraw(); save();
+  }
+  window.addEventListener('pointerup', endStroke);
+  window.addEventListener('pointercancel', endStroke);
+  ['touchstart','touchmove'].forEach(t=>canvas.addEventListener(t, e=>e.preventDefault(), {passive:false}));
   canvas.addEventListener('selectstart', e=>e.preventDefault());
   canvas.addEventListener('contextmenu', e=>e.preventDefault());
 
